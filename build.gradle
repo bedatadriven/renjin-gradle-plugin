@@ -1,0 +1,28 @@
+plugins {
+    id 'java-gradle-plugin'
+    id 'groovy'
+}
+
+group 'org.renjin'
+
+version = '3.5'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+gradlePlugin {
+    plugins {
+        packagePlugin {
+            id = 'org.renjin.package'
+            implementationClass = 'org.renjin.gradle.PackagePlugin'
+        }
+        nativeSourcesPlugin {
+            id = 'org.renjin.native-sources'
+            implementationClass = 'org.renjin.gradle.NativeSourcePlugin'
+        }
+    }
+}
