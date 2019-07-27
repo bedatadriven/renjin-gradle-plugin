@@ -10,6 +10,12 @@ import org.gradle.api.tasks.*
 
 import javax.inject.Inject
 
+/**
+ * Invoke 'make' in order to build native sources included in a package.
+ *
+ * <p>This task executes 'make' with the required environment variables, and
+ * copies the resulting .gimple files to an output di
+ */
 class MakeTask extends DefaultTask {
 
     @InputDirectory

@@ -12,10 +12,15 @@ class NativeSourcePlugin implements Plugin<Project> {
         def configureTask = project.tasks.register('configure', ConfigureTask, project)
         def makeTask = project.tasks.register('make', MakeTask, project)
 
-        def linkConfiguration = project.configurations.create('link')
+        project.configurations.create('link')
+        project.configurations.create('gimpleCompiler')
 
-        def gimpleCompilerConfig = project.configurations.create('gimpleCompiler')
-        project.dependencies.add('gimpleCompiler', "org.renjin:renjin-gnur-compiler:3.5-beta61")
+        def extension = project.extensions.getByName('renjin')
+
+        project.afterEvaluate {
+            it.dependencies.add('gimpleCompiler', "org.renjin:renjin-gnur-compiler:${extension.resolveRenjinVersion()}")
+        }
+
 
         makeTask.configure {
             dependsOn configureTask
@@ -46,6 +51,10 @@ class NativeSourcePlugin implements Plugin<Project> {
 
         project.tasks.named('compileNamespace').configure {
             compileClasspath.from(compileGimpleTask.flatMap { it.destinationDir })
+        }
+
+        project.tasks.named('testNamespace').configure {
+            runtimeClasspath.from(compileGimpleTask.flatMap { it.destinationDir })
         }
     }
 }

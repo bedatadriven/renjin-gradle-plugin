@@ -8,7 +8,7 @@ import org.gradle.api.tasks.Copy
 class PackagePlugin implements Plugin<Project> {
 
     static List<String> DEFAULT_PACKAGES = [ 'stats', 'graphics', 'grDevices', 'utils', 'datasets', 'methods' ];
-    static List<String> CORE_PACKAGES = DEFAULT_PACKAGES + [ 'splines', 'grid', 'parallel', 'tools', 'tcltk' ];
+    static List<String> CORE_PACKAGES = DEFAULT_PACKAGES + [ 'splines', 'grid', 'parallel', 'tools', 'tcltk', 'compiler' ];
 
     @Override
     void apply(Project project) {
@@ -16,6 +16,9 @@ class PackagePlugin implements Plugin<Project> {
         project.pluginManager.apply(JavaPlugin)
 
         def extension = project.extensions.create('renjin', RenjinExtension)
+        if(project.hasProperty("renjinVersion")) {
+            extension.renjinVersion.convention(project.property('renjinVersion'))
+        }
 
         project.repositories {
             maven {
@@ -25,12 +28,12 @@ class PackagePlugin implements Plugin<Project> {
 
         def renjinPackager = project.configurations.create('renjinPackager')
 
-//        project.dependencies.add('renjinPackager', extension.renjinVersion.map { "org.renjin:renjin-packager:${it}" })
-
-        project.dependencies.add(renjinPackager.name, "org.renjin:renjin-packager:3.5-beta61")
-
-        CORE_PACKAGES.forEach {
-            project.dependencies.add('compile', "org.renjin:$it:3.5-beta61")
+        renjinPackager.incoming.beforeResolve {
+            def renjinVersion = extension.resolveRenjinVersion()
+            project.dependencies.add(renjinPackager.name, "org.renjin:renjin-packager:${renjinVersion}")
+            CORE_PACKAGES.forEach {
+                project.dependencies.add(renjinPackager.name, "org.renjin:$it:${renjinVersion}")
+            }
         }
 
         def copyPackageResourcesTask = project.tasks.register ('copyPackageResources', Copy)
@@ -48,17 +51,15 @@ class PackagePlugin implements Plugin<Project> {
         project.sourceSets {
             main {
                 java.srcDirs = ['renjin']
-                output.dir("${project.buildDir}/resources", builtBy: 'copyPackageResources')
+                output.dir("${project.buildDir}/inst", builtBy: 'copyPackageResources')
                 output.dir("${project.buildDir}/namespace", builtBy: 'compileNamespace')
             }
         }
 
-        def compileJavaTask = project.tasks.named('compileJava')
-
         def testTask = project.tasks.register('testNamespace', TestNamespaceTask, project)
         testTask.configure {
-            namespaceDirectory = compileNamespaceTask.flatMap { it.destinationDir }
-            javaClassesDirectory = compileJavaTask.map { it.destinationDir }
+            runtimeClasspath.from(project.sourceSets.main.output)
+            runtimeClasspath.from(project.configurations.testRuntime)
         }
 
         project.tasks.named('test').configure {

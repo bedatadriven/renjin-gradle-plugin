@@ -8,11 +8,17 @@ import javax.inject.Inject
 class RenjinExtension {
     final Property<String> renjinVersion
 
-    final Property<List<String>> linkingTo
+    final Property<String> renjin
+
+    String resolveRenjinVersion() {
+        if(!renjinVersion.isPresent()) {
+            throw new RuntimeException("renjinVersion is not specified.")
+        }
+        return renjinVersion.get();
+    }
 
     @Inject
     RenjinExtension(ObjectFactory objects) {
         renjinVersion = objects.property(String)
-        linkingTo = objects.property(List.class).convention(Collections.emptyList())
     }
 }

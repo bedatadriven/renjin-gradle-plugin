@@ -42,18 +42,17 @@ class CompileGimpleTask extends DefaultTask {
             main = 'org.renjin.gnur.GnurSourcesCompiler'
             classpath compilerClasspath
             classpath linkClasspath
-            classpath compileClasspath
+            classpath project.configurations.compile
 
             args '--package', "${project.group}.${project.name}"
             args '--class', project.name
             args '--input-dir', "${project.buildDir}/gimple"
-            args '--output-dir', "${project.buildDir}/native"
+            args '--output-dir', destinationDir.get().asFile.absolutePath
             args '--logging-dir', "${project.buildDir}/gcc-bridge-logs"
-//
-//        if (project.hasProperty('debugGimple') && project.property("debugGimple") == project.name) {
-//            jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=y'
-//        }
 
+            if (project.hasProperty('debugGimple') && project.property("debugGimple") == project.name) {
+                jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=y'
+            }
         }
     }
 }

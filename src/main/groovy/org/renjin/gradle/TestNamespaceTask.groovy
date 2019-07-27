@@ -21,17 +21,12 @@ class TestNamespaceTask extends DefaultTask {
     final ConfigurableFileCollection packagerClasspath = project.objects.fileCollection()
 
     @Classpath
-    final ConfigurableFileCollection compileClasspath = project.objects.fileCollection()
-
-    @Classpath
-    final ConfigurableFileCollection testRuntimeClasspath = project.objects.fileCollection()
-
+    final ConfigurableFileCollection runtimeClasspath = project.objects.fileCollection()
 
     @PathSensitive(PathSensitivity.RELATIVE)
     @InputDirectory
     @SkipWhenEmpty
     final DirectoryProperty testsDirectory = project.objects.directoryProperty()
-
 
     @PathSensitive(PathSensitivity.RELATIVE)
     @InputDirectory
@@ -41,19 +36,11 @@ class TestNamespaceTask extends DefaultTask {
     @Input
     final Property<List<String>> defaultPackages = project.objects.property(List.class)
 
-    @InputDirectory
-    final DirectoryProperty namespaceDirectory = project.objects.directoryProperty()
-
-    @InputDirectory
-    final Property<File> javaClassesDirectory = project.objects.property(File.class)
-
     @Inject
     TestNamespaceTask(Project project) {
         group = 'Verification'
         description = 'Run package tests'
         packagerClasspath.setFrom(project.configurations.renjinPackager)
-        compileClasspath.setFrom(project.configurations.compile)
-        testRuntimeClasspath.setFrom(project.configurations.testRuntime)
         if(project.file('tests').exists()) {
             testsDirectory.convention(project.layout.projectDirectory.dir('tests'))
         }
@@ -70,10 +57,7 @@ class TestNamespaceTask extends DefaultTask {
         project.javaexec {
             main = 'org.renjin.packaging.test.TestMain'
 
-            classpath namespaceDirectory
-            classpath javaClassesDirectory
-            classpath compileClasspath
-            classpath testRuntimeClasspath
+            classpath runtimeClasspath
             classpath packagerClasspath
 
             args "--name=${project.name}"
@@ -87,6 +71,9 @@ class TestNamespaceTask extends DefaultTask {
             }
             if (manDirectory.present) {
                 args manDirectory.get().asFile.absolutePath
+            }
+            if (project.hasProperty('debugTests')) {
+                jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=y'
             }
         }
     }
