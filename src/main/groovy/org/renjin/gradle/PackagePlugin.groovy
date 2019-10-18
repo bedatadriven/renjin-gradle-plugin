@@ -7,8 +7,8 @@ import org.gradle.api.tasks.Copy
 
 class PackagePlugin implements Plugin<Project> {
 
-    static List<String> DEFAULT_PACKAGES = [ 'stats', 'graphics', 'grDevices', 'utils', 'datasets', 'methods' ];
-    static List<String> CORE_PACKAGES = DEFAULT_PACKAGES + [ 'splines', 'grid', 'parallel', 'tools', 'tcltk', 'compiler' ];
+    static List<String> DEFAULT_PACKAGES = [ 'stats', 'graphics', 'grDevices', 'utils', 'datasets', 'methods' ]
+    static List<String> CORE_PACKAGES = DEFAULT_PACKAGES + [ 'splines', 'grid', 'parallel', 'tools', 'tcltk', 'compiler' ]
 
     @Override
     void apply(Project project) {
@@ -35,7 +35,7 @@ class PackagePlugin implements Plugin<Project> {
                 project.dependencies.add(renjinPackager.name, "org.renjin:$it:${renjinVersion}")
             }
         }
-
+        def configureTask = project.tasks.register('configure', ConfigureTask, project)
         def copyPackageResourcesTask = project.tasks.register ('copyPackageResources', Copy)
         copyPackageResourcesTask.configure {
             from (project.projectDir) {
@@ -46,7 +46,7 @@ class PackagePlugin implements Plugin<Project> {
             into("${project.buildDir}/resources/${project.group.replace('.', '/')}/${project.name}")
         }
 
-        def compileNamespaceTask = project.tasks.register('compileNamespace', CompileNamespaceTask, project)
+        project.tasks.register('compileNamespace', CompileNamespaceTask, project)
 
         project.sourceSets {
             main {

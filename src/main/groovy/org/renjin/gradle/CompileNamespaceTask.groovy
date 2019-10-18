@@ -1,5 +1,6 @@
 package org.renjin.gradle
 
+
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
@@ -20,6 +21,7 @@ class CompileNamespaceTask extends DefaultTask {
     @Input
     final Property<List<String>> defaultPackages = project.objects.property(List.class)
 
+    @Optional
     @PathSensitive(PathSensitivity.RELATIVE)
     @InputDirectory
     final DirectoryProperty sourceDirectory = project.objects.directoryProperty()
@@ -38,7 +40,9 @@ class CompileNamespaceTask extends DefaultTask {
         description = 'Compile R sources'
         packagerClasspath.setFrom(project.configurations.renjinPackager)
         compileClasspath.from(project.configurations.compile)
-        sourceDirectory.convention(project.layout.projectDirectory.dir('R'))
+        if(project.file("R").exists()) {
+            sourceDirectory.convention(project.layout.projectDirectory.dir('R'))
+        }
         if(project.file('data').exists()) {
             dataDirectory.convention(project.layout.projectDirectory.dir('data'))
         }
@@ -51,6 +55,9 @@ class CompileNamespaceTask extends DefaultTask {
 
     @TaskAction
     void compile() {
+        def fileLogger = new TaskFileLogger(project.buildDir, this)
+        logging.addStandardOutputListener(fileLogger)
+        logging.addStandardErrorListener(fileLogger)
 
         if(!project.group) {
             throw new RuntimeException("The project group must be specified")
@@ -59,15 +66,23 @@ class CompileNamespaceTask extends DefaultTask {
         project.delete destinationDir
         project.mkdir destinationDir
 
-        project.javaexec {
-            main = 'org.renjin.packaging.GnurPackageBuilder'
-            classpath destinationDir
-            classpath compileClasspath
-            classpath packagerClasspath
-            args '--groupId', project.group
-            args '--name', project.name
-            args '--home', 'foo'
-            args "--default-packages=${defaultPackages.get().join(',')}"
+        try {
+            project.javaexec {
+                main = 'org.renjin.packaging.GnurPackageBuilder'
+                classpath destinationDir
+                classpath compileClasspath
+                classpath packagerClasspath
+                args '--groupId', project.group
+                args '--name', project.name
+                args '--home', 'foo'
+                args "--default-packages=${defaultPackages.get().join(',')}"
+
+                if (project.hasProperty('debugNamespace') && project.property("debugNamespace") == project.name) {
+                    jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=y'
+                }
+            }
+        } finally {
+            fileLogger.close()
         }
     }
 }

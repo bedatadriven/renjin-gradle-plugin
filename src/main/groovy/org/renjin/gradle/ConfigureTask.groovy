@@ -37,10 +37,18 @@ class ConfigureTask extends AbstractTask {
 
     @TaskAction
     void configure() {
-        project.exec {
-            executable = 'sh'
-            args configureFile.get().asFile.name
-            environment 'R_HOME', renjinHomeDir.get().asFile.absolutePath
+        def fileLogger = new TaskFileLogger(project.buildDir, this)
+        logging.addStandardErrorListener(fileLogger)
+        logging.addStandardOutputListener(fileLogger)
+
+        try {
+            project.exec {
+                executable = 'sh'
+                args configureFile.get().asFile.name
+                environment 'R_HOME', renjinHomeDir.get().asFile.absolutePath
+            }
+        } finally {
+            fileLogger.close()
         }
     }
 }

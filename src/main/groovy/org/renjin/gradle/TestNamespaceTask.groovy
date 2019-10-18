@@ -8,6 +8,7 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.SkipWhenEmpty
@@ -23,6 +24,7 @@ class TestNamespaceTask extends DefaultTask {
     @Classpath
     final ConfigurableFileCollection runtimeClasspath = project.objects.fileCollection()
 
+    @Optional
     @PathSensitive(PathSensitivity.RELATIVE)
     @InputDirectory
     @SkipWhenEmpty
@@ -53,6 +55,7 @@ class TestNamespaceTask extends DefaultTask {
 
     @TaskAction
     void run() {
+        logging.addStandardOutputListener(new TaskFileLogger(project.buildDir, this))
 
         project.javaexec {
             main = 'org.renjin.packaging.test.TestMain'
@@ -64,9 +67,9 @@ class TestNamespaceTask extends DefaultTask {
             args "--report-dir=${project.buildDir}/renjin-test-reports"
             args "--default-packages=${defaultPackages.get().join(',')}"
 
-            workingDir testsDirectory.get().asFile.absolutePath
 
             if (testsDirectory.present) {
+                workingDir testsDirectory.get().asFile.absolutePath
                 args testsDirectory.get().asFile.absolutePath
             }
             if (manDirectory.present) {

@@ -9,7 +9,6 @@ class NativeSourcePlugin implements Plugin<Project> {
     void apply(Project project) {
         project.pluginManager.apply(PackagePlugin)
 
-        def configureTask = project.tasks.register('configure', ConfigureTask, project)
         def makeTask = project.tasks.register('make', MakeTask, project)
 
         project.configurations.create('link')
@@ -23,14 +22,12 @@ class NativeSourcePlugin implements Plugin<Project> {
 
 
         makeTask.configure {
-            dependsOn configureTask
+            dependsOn 'configure'
 
             // If we are 'LinkingTo' any projects, then make sure
             // that those projects run 'configure' first, as they may generate
             // sources
             project.configurations.link.dependencies.forEach {
-
-
                 if(it instanceof ProjectDependency) {
                     def linkingTo = it.dependencyProject;
 
@@ -53,8 +50,10 @@ class NativeSourcePlugin implements Plugin<Project> {
             compileClasspath.from(compileGimpleTask.flatMap { it.destinationDir })
         }
 
-        project.tasks.named('testNamespace').configure {
-            runtimeClasspath.from(compileGimpleTask.flatMap { it.destinationDir })
+        project.sourceSets {
+            main {
+                output.dir("${project.buildDir}/gimpleClasses", builtBy: 'compileGimple')
+            }
         }
     }
 }

@@ -54,83 +54,93 @@ class MakeTask extends DefaultTask {
 
     @TaskAction
     void make() {
-        // First remove all the existing .o, .so, and .gimple files
-        project.delete sourcesDirectory.asFileTree.matching {
-            include "**/*.o"
-            include "**/*.d"
-            include "**/*.so"
-            include "**/*.gimple"
-        }
+        // Store output for later
+        def fileLogger = new TaskFileLogger(project.buildDir, this)
+        logging.addStandardOutputListener(fileLogger)
 
-        // Now we can re-run make
-
-        def makeVars = sourcesDirectory.get().file("Makevars.renjin").asFile
-        if (!makeVars.exists()) {
-            makeVars =  sourcesDirectory.get().file("Makevars").asFile
-        }
-        def homeDir = renjinHomeDir.get().asFile.absolutePath
-        def makeconfFile = new File("$homeDir/etc/Makeconf")
-        def shlibMk = new File("$homeDir/share/make/shlib.mk")
-
-        project.exec {
-            executable = 'make'
-
-            if (makeVars.exists()) {
-                args '-f', makeVars.absolutePath
+        try {
+            // First remove all the existing .o, .so, and .gimple files
+            project.delete sourcesDirectory.asFileTree.matching {
+                include "**/*.o"
+                include "**/*.d"
+                include "**/*.so"
+                include "**/*.gimple"
             }
 
-            args '-f', makeconfFile.absolutePath
-            args '-f', shlibMk.absolutePath
+            // Now we can re-run make
 
-            args "SHLIB='${project.name}.so'"
+            def makeVars = sourcesDirectory.get().file("Makevars.renjin").asFile
+            if (!makeVars.exists()) {
+                makeVars = sourcesDirectory.get().file("Makevars").asFile
+            }
+            def homeDir = renjinHomeDir.get().asFile.absolutePath
+            def makeconfFile = new File("$homeDir/etc/Makeconf")
+            def shlibMk = new File("$homeDir/share/make/shlib.mk")
 
-            if (!(makeVars.exists() && makeVars.readLines().grep(~/^OBJECTS\s*=.*/))) {
-                def objectFiles = [];
-                sourcesDirectory.get().asFile.eachFileMatch(~/.*\.(c|f|f77|f90|f95|f03|for|cpp|cxx|cc)$/) { file ->
-                    objectFiles.add(file.name.replaceFirst(~/\.[^.]+$/, '.o'))
+            project.exec {
+                executable = 'make'
+
+                if (makeVars.exists()) {
+                    args '-f', makeVars.absolutePath
                 }
-                args "OBJECTS=${objectFiles.join(' ')}"
+
+                args '-f', makeconfFile.absolutePath
+                args '-f', shlibMk.absolutePath
+
+                args "SHLIB='${project.name}.so'"
+
+                if (!(makeVars.exists() && makeVars.readLines().grep(~/^OBJECTS\s*=.*/))) {
+                    def objectFiles = [];
+                    sourcesDirectory.get().asFile.eachFileMatch(~/.*\.(c|f|f77|f90|f95|f03|for|cpp|cxx|cc)$/) { file ->
+                        objectFiles.add(file.name.replaceFirst(~/\.[^.]+$/, '.o'))
+                    }
+                    args "OBJECTS=${objectFiles.join(' ')}"
+                }
+
+                args "BRIDGE_PLUGIN=${pluginLibrary.get().asFile.absolutePath}"
+
+                // TODO CXX11
+                // TODO include dependency headers
+
+                environment 'R_VERSION', '3.5.3'
+                environment 'R_HOME', homeDir
+                environment 'R_INCLUDE_DIR', "${homeDir}/include"
+                environment 'R_SHARE_DIR', "${homeDir}/share"
+                environment 'R_PACKAGE_NAME', project.name
+                environment 'R_INSTALL_PACKAGE', project.name
+                environment 'MAKE', 'make'
+                environment 'R_UNZIPCMD', '/usr/bin/unzip'
+                environment 'R_GZIPCMD', '/usr/bin/gzip'
+
+                environment 'CLINK_CPPFLAGS',
+                        project.configurations.link.dependencies.collect {
+                            "-I\"${it.dependencyProject.file('inst/include')}\""
+                        }.join(" ")
+
+                workingDir sourcesDirectory.get().asFile.absolutePath
             }
 
-            args "BRIDGE_PLUGIN=${pluginLibrary.get().asFile.absolutePath}"
+            // Reset the output directory
+            project.delete gimpleDirectory
+            project.mkdir gimpleDirectory
 
-            // TODO CXX11
-            // TODO include dependency headers
-
-            environment 'R_VERSION', '3.5.3'
-            environment 'R_HOME', homeDir
-            environment 'R_INCLUDE_DIR', "${homeDir}/include"
-            environment 'R_SHARE_DIR', "${homeDir}/share"
-            environment 'R_PACKAGE_NAME', project.name
-            environment 'R_INSTALL_PACKAGE', project.name
-            environment 'MAKE', 'make'
-            environment 'R_UNZIPCMD', '/usr/bin/unzip'
-            environment 'R_GZIPCMD', '/usr/bin/gzip'
-
-            environment 'CLINK_CPPFLAGS',
-                    project.configurations.link.dependencies.collect { "-I\"${it.dependencyProject.file('inst/include')}\"" }.join(" ")
-
-            workingDir sourcesDirectory.get().asFile.absolutePath
-        }
-
-        // Reset the output directory
-        project.delete gimpleDirectory
-        project.mkdir gimpleDirectory
-
-        // Now copy ONLY the gimple into the output directory
-        project.copy {
-            into gimpleDirectory
-            from('src') {
-                include '**/*.gimple'
+            // Now copy ONLY the gimple into the output directory
+            project.copy {
+                into gimpleDirectory
+                from('src') {
+                    include '**/*.gimple'
+                }
             }
-        }
 
-        // Cleanup the leftovers
-        project.delete sourcesDirectory.asFileTree.matching {
-            include "**/*.o"
-            include "**/*.d"
-            include "**/*.so"
-            include "**/*.gimple"
+            // Cleanup the leftovers
+            project.delete sourcesDirectory.asFileTree.matching {
+                include "**/*.o"
+                include "**/*.d"
+                include "**/*.so"
+                include "**/*.gimple"
+            }
+        } finally {
+            fileLogger.close()
         }
     }
 }
