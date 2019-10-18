@@ -4,6 +4,7 @@ package org.renjin.gradle
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
 
 class CompileGimpleTask extends DefaultTask {
@@ -24,11 +25,16 @@ class CompileGimpleTask extends DefaultTask {
     @OutputDirectory
     final DirectoryProperty destinationDir = project.objects.directoryProperty()
 
+    @Input
+    final Property<Boolean> ignoreErrors = project.objects.property(Boolean.class);
+
+
     CompileGimpleTask() {
         destinationDir.convention(project.layout.buildDirectory.dir("gimpleClasses"))
         compilerClasspath.setFrom(project.configurations.gimpleCompiler)
         linkClasspath.setFrom(project.configurations.link)
         compileClasspath.setFrom(project.configurations.compile)
+        ignoreErrors.convention("true".equalsIgnoreCase(project.findProperty("ignoreGccBridgeErrors")))
     }
 
     @TaskAction
@@ -37,22 +43,32 @@ class CompileGimpleTask extends DefaultTask {
         project.delete destinationDir
         project.mkdir destinationDir
 
-        project.javaexec {
+        def fileLogger = new TaskFileLogger(project.buildDir, this)
+        logging.addStandardOutputListener(fileLogger)
+        logging.addStandardErrorListener(fileLogger)
 
-            main = 'org.renjin.gnur.GnurSourcesCompiler'
-            classpath compilerClasspath
-            classpath linkClasspath
-            classpath project.configurations.compile
+        try {
+            project.javaexec {
 
-            args '--package', "${project.group}.${project.name}"
-            args '--class', project.name
-            args '--input-dir', "${project.buildDir}/gimple"
-            args '--output-dir', destinationDir.get().asFile.absolutePath
-            args '--logging-dir', "${project.buildDir}/gcc-bridge-logs"
+                main = 'org.renjin.gnur.GnurSourcesCompiler'
+                classpath compilerClasspath
+                classpath linkClasspath
+                classpath project.configurations.compile
 
-            if (project.hasProperty('debugGimple') && project.property("debugGimple") == project.name) {
-                jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=y'
+                environment "GCC_BRIDGE_IGNORE_ERRORS", ignoreErrors.get() ? "TRUE" : "FALSE"
+
+                args '--package', "${project.group}.${project.name}"
+                args '--class', project.name
+                args '--input-dir', "${project.buildDir}/gimple"
+                args '--output-dir', destinationDir.get().asFile.absolutePath
+                args '--logging-dir', "${project.buildDir}/gcc-bridge-logs"
+
+                if (project.hasProperty('debugGimple') && project.property("debugGimple") == project.name) {
+                    jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=y'
+                }
             }
+        } finally {
+            fileLogger.close()
         }
     }
 }
