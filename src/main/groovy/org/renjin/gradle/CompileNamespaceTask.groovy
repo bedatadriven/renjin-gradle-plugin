@@ -51,6 +51,8 @@ class CompileNamespaceTask extends DefaultTask {
 
         inputs.file(project.file('DESCRIPTION'))
         inputs.file(project.file('NAMESPACE'))
+        inputs.property("group", project.group)
+        inputs.property("name", project.name)
     }
 
     @TaskAction
@@ -66,16 +68,23 @@ class CompileNamespaceTask extends DefaultTask {
         project.delete destinationDir
         project.mkdir destinationDir
 
+        logger.info("sourceDirectory = ${sourceDirectory.get()}")
+
         try {
             project.javaexec {
                 main = 'org.renjin.packaging.GnurPackageBuilder'
                 classpath destinationDir
-                classpath compileClasspath
                 classpath packagerClasspath
+                classpath compileClasspath
+
                 args '--groupId', project.group
                 args '--name', project.name
                 args '--home', 'foo'
                 args "--default-packages=${defaultPackages.get().join(',')}"
+
+                if(sourceDirectory.isPresent()) {
+                    args "--r-source-directory", sourceDirectory.get().asFile.absolutePath
+                }
 
                 if (project.hasProperty('debugNamespace') && project.property("debugNamespace") == project.name) {
                     jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=y'

@@ -20,6 +20,10 @@ gradlePlugin {
             id = 'org.renjin.package'
             implementationClass = 'org.renjin.gradle.PackagePlugin'
         }
+        javaPackagePlugin {
+            id = 'org.renjin.java-package'
+            implementationClass = 'org.renjin.gradle.JavaPackagePlugin'
+        }
         nativeSourcesPlugin {
             id = 'org.renjin.native-sources'
             implementationClass = 'org.renjin.gradle.NativeSourcePlugin'

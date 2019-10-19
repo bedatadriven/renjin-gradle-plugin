@@ -18,9 +18,15 @@ import javax.inject.Inject
 
 class TestNamespaceTask extends DefaultTask {
 
+    /**
+     * Classpath for org.renjin.packaging.test.TestMain itself.
+     */
     @Classpath
     final ConfigurableFileCollection packagerClasspath = project.objects.fileCollection()
 
+    /**
+     * Classpath that includes everything required to load the namespace and run the tests.
+     */
     @Classpath
     final ConfigurableFileCollection runtimeClasspath = project.objects.fileCollection()
 
@@ -30,6 +36,7 @@ class TestNamespaceTask extends DefaultTask {
     @SkipWhenEmpty
     final DirectoryProperty testsDirectory = project.objects.directoryProperty()
 
+    @Optional
     @PathSensitive(PathSensitivity.RELATIVE)
     @InputDirectory
     @SkipWhenEmpty
@@ -57,11 +64,13 @@ class TestNamespaceTask extends DefaultTask {
     void run() {
         logging.addStandardOutputListener(new TaskFileLogger(project.buildDir, this))
 
+        logger.info("defaultPackages = ${defaultPackages.get()}")
+
         project.javaexec {
             main = 'org.renjin.packaging.test.TestMain'
 
-            classpath runtimeClasspath
             classpath packagerClasspath
+            classpath runtimeClasspath
 
             args "--name=${project.name}"
             args "--report-dir=${project.buildDir}/renjin-test-reports"
