@@ -57,7 +57,7 @@ class CompileNamespaceTask extends DefaultTask {
 
     @TaskAction
     void compile() {
-        def fileLogger = new TaskFileLogger(project.buildDir, this)
+        def fileLogger = new TaskFileLogger(this)
         logging.addStandardOutputListener(fileLogger)
         logging.addStandardErrorListener(fileLogger)
 
@@ -76,6 +76,9 @@ class CompileNamespaceTask extends DefaultTask {
                 classpath destinationDir
                 classpath packagerClasspath
                 classpath compileClasspath
+
+                standardOutput = fileLogger.standardOutput
+                errorOutput = fileLogger.errorOutput
 
                 args '--groupId', project.group
                 args '--name', project.name

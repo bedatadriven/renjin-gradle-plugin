@@ -4,6 +4,7 @@ package org.renjin.gradle
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
 
@@ -18,9 +19,8 @@ class CompileGimpleTask extends DefaultTask {
     @CompileClasspath
     final ConfigurableFileCollection linkClasspath = project.objects.fileCollection()
 
-    @SkipWhenEmpty
-    @InputDirectory
-    final DirectoryProperty gimpleDirectory = project.objects.directoryProperty();
+    @InputFile
+    final RegularFileProperty gimpleArchiveFile = project.objects.fileProperty();
 
     @OutputDirectory
     final DirectoryProperty destinationDir = project.objects.directoryProperty()
@@ -43,7 +43,7 @@ class CompileGimpleTask extends DefaultTask {
         project.delete destinationDir
         project.mkdir destinationDir
 
-        def fileLogger = new TaskFileLogger(project.buildDir, this)
+        def fileLogger = new TaskFileLogger(this)
         logging.addStandardOutputListener(fileLogger)
         logging.addStandardErrorListener(fileLogger)
 
@@ -51,6 +51,10 @@ class CompileGimpleTask extends DefaultTask {
             project.javaexec {
 
                 main = 'org.renjin.gnur.GnurSourcesCompiler'
+
+                standardOutput = fileLogger.standardOutput
+                errorOutput = fileLogger.errorOutput
+
                 classpath compilerClasspath
                 classpath linkClasspath
                 classpath project.configurations.compile
@@ -59,9 +63,12 @@ class CompileGimpleTask extends DefaultTask {
 
                 args '--package', "${project.group}.${project.name}"
                 args '--class', project.name
-                args '--input-dir', "${project.buildDir}/gimple"
+                args '--input-dir', gimpleArchiveFile.get().asFile.absolutePath
                 args '--output-dir', destinationDir.get().asFile.absolutePath
-                args '--logging-dir', "${project.buildDir}/gcc-bridge-logs"
+
+                if(project.hasProperty("enableGccBridgeLogging")) {
+                    args '--logging-dir', "${project.buildDir}/gcc-bridge-logs"
+                }
 
                 if (project.hasProperty('debugGimple') && project.property("debugGimple") == project.name) {
                     jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=y'

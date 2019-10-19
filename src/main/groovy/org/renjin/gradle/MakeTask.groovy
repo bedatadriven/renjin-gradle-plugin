@@ -1,6 +1,6 @@
 package org.renjin.gradle
 
-
+import groovy.io.FileType
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
@@ -9,12 +9,17 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.*
 
 import javax.inject.Inject
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 /**
  * Invoke 'make' in order to build native sources included in a package.
  *
  * <p>This task executes 'make' with the required environment variables, and
- * copies the resulting .gimple files to an output di
+ * copies the resulting .gimple files to a compressed zip archive.
+ *
+ * <p>We want to run this as a separate task from compiling the gimple because it's
+ * very time consuming and the Gimple compiler changes more often than the sources.
  */
 class MakeTask extends DefaultTask {
 
@@ -34,8 +39,8 @@ class MakeTask extends DefaultTask {
     @CompileClasspath
     final ConfigurableFileCollection linkClasspath = project.objects.fileCollection()
 
-    @OutputDirectory
-    final DirectoryProperty gimpleDirectory = project.objects.directoryProperty()
+    @OutputFile
+    final RegularFileProperty gimpleArchiveFile = project.objects.fileProperty()
 
     @Inject
     MakeTask(Project project) {
@@ -44,28 +49,18 @@ class MakeTask extends DefaultTask {
         renjinHomeDir.set(new File(project.property("renjinHomeDir")))
         pluginLibrary.set(new File(project.property("gccBridgePlugin")))
         sourcesDirectory.convention(project.layout.projectDirectory.dir('src'))
-        gimpleDirectory.convention(project.layout.buildDirectory.dir('gimple'))
-//
-//        def projectIncludeDir = project.file("inst/include")
-//        if(projectIncludeDir.exists()) {
-//            includeDirectories.from(projectIncludeDir)
-//        }
+        gimpleArchiveFile.convention(project.layout.buildDirectory.file('gimple.zip'))
     }
 
     @TaskAction
     void make() {
         // Store output for later
-        def fileLogger = new TaskFileLogger(project.buildDir, this)
+        def fileLogger = new TaskFileLogger(this)
         logging.addStandardOutputListener(fileLogger)
 
         try {
             // First remove all the existing .o, .so, and .gimple files
-            project.delete sourcesDirectory.asFileTree.matching {
-                include "**/*.o"
-                include "**/*.d"
-                include "**/*.so"
-                include "**/*.gimple"
-            }
+            cleanIntermediateGccFiles()
 
             // Now we can re-run make
 
@@ -79,6 +74,9 @@ class MakeTask extends DefaultTask {
 
             project.exec {
                 executable = 'make'
+
+                standardOutput = fileLogger.standardOutput
+                errorOutput = fileLogger.errorOutput
 
                 if (makeVars.exists()) {
                     args '-f', makeVars.absolutePath
@@ -118,29 +116,49 @@ class MakeTask extends DefaultTask {
                         }.join(" ")
 
                 workingDir sourcesDirectory.get().asFile.absolutePath
+
             }
 
             // Reset the output directory
-            project.delete gimpleDirectory
-            project.mkdir gimpleDirectory
+            project.delete gimpleArchiveFile
 
-            // Now copy ONLY the gimple into the output directory
-            project.copy {
-                into gimpleDirectory
-                from('src') {
-                    include '**/*.gimple'
-                }
-            }
+            // Now copy ONLY the gimple into a ZIP file
+            // We do this because the raw json is huge and fills up the build disk
+            archiveGimple()
 
-            // Cleanup the leftovers
-            project.delete sourcesDirectory.asFileTree.matching {
-                include "**/*.o"
-                include "**/*.d"
-                include "**/*.so"
-                include "**/*.gimple"
-            }
+            // Clean up intermediate files so we don't interfere with Gradle's
+            // incremental build logic
+            cleanIntermediateGccFiles()
+
         } finally {
             fileLogger.close()
+        }
+    }
+
+    private void archiveGimple() {
+        def archiveOut = new ZipOutputStream(new FileOutputStream(gimpleArchiveFile.get().asFile))
+        def sourceDir = sourcesDirectory.get().asFile.absoluteFile
+        sourceDir.eachFileRecurse(FileType.FILES) {
+            if (it.name.endsWith('.gimple')) {
+                archiveOut.putNextEntry(new ZipEntry(sourceDir.relativePath(it)))
+                archiveOut.write(it.bytes)
+            }
+        }
+        archiveOut.close()
+    }
+
+    /**
+     * Removes intermediate results produced by GCC. This is neccessary because otherwise
+     * Gradle cannot properly determine whether the inputs have changed. Also, if we change the plugin
+     * after running the build, GCC will not rebuild and regenerate the .gimple files because it only considers
+     * the .o files when doing its own dirty-checking.
+     */
+    private boolean cleanIntermediateGccFiles() {
+        project.delete sourcesDirectory.asFileTree.matching {
+            include "**/*.o"
+            include "**/*.d"
+            include "**/*.so"
+            include "**/*.gimple"
         }
     }
 }

@@ -62,13 +62,16 @@ class TestNamespaceTask extends DefaultTask {
 
     @TaskAction
     void run() {
-        logging.addStandardOutputListener(new TaskFileLogger(project.buildDir, this))
+        def fileLogger = new TaskFileLogger(this)
+        logging.addStandardOutputListener(fileLogger)
 
         logger.info("defaultPackages = ${defaultPackages.get()}")
 
-
         project.javaexec {
             main = 'org.renjin.packaging.test.TestMain'
+
+            standardOutput = fileLogger.standardOutput
+            errorOutput = fileLogger.errorOutput
 
             classpath packagerClasspath
             classpath runtimeClasspath

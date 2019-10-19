@@ -43,7 +43,7 @@ class NativeSourcePlugin implements Plugin<Project> {
 
         def compileGimpleTask = project.tasks.register('compileGimple', CompileGimpleTask)
         compileGimpleTask.configure {
-            gimpleDirectory = makeTask.flatMap { it.gimpleDirectory }
+            gimpleArchiveFile = makeTask.flatMap { it.gimpleArchiveFile }
         }
 
         project.tasks.named('compileNamespace').configure {

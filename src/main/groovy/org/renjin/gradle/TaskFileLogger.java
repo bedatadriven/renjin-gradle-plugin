@@ -1,6 +1,7 @@
 package org.renjin.gradle;
 
 import org.gradle.api.Task;
+import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.StandardOutputListener;
 
 import java.io.*;
@@ -10,11 +11,13 @@ public class TaskFileLogger implements StandardOutputListener {
 
   private Writer writer;
   private final FileOutputStream output;
+  private boolean infoEnabled;
 
-  public TaskFileLogger(File buildDir, Task task) throws FileNotFoundException {
-    File logFile = new File(buildDir, task.getName() + ".log");
+  public TaskFileLogger(Task task) throws FileNotFoundException {
+    File logFile = new File(task.getProject().getBuildDir(), task.getName() + ".log");
     logFile.getParentFile().mkdirs();
 
+    infoEnabled = task.getLogger().isInfoEnabled();
     output = new FileOutputStream(logFile);
     writer = new OutputStreamWriter(output, StandardCharsets.UTF_8);
 
@@ -32,21 +35,27 @@ public class TaskFileLogger implements StandardOutputListener {
     return new OutputStream() {
       @Override
       public void write(int b) throws IOException {
-        echo.write(b);
+        if(infoEnabled) {
+          echo.write(b);
+        }
         writer.flush();
         output.write(b);
       }
 
       @Override
       public void write(byte[] b, int off, int len) throws IOException {
-        echo.write(b, off, len);
+        if(infoEnabled) {
+          echo.write(b, off, len);
+        }
         writer.flush();
         output.write(b, off, len);
       }
 
       @Override
       public void flush() throws IOException {
-        echo.flush();
+        if(infoEnabled) {
+          echo.flush();
+        }
         writer.flush();
         output.flush();
       }
