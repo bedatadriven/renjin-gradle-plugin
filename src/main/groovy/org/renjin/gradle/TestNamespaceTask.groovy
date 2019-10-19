@@ -66,6 +66,7 @@ class TestNamespaceTask extends DefaultTask {
 
         logger.info("defaultPackages = ${defaultPackages.get()}")
 
+
         project.javaexec {
             main = 'org.renjin.packaging.test.TestMain'
 

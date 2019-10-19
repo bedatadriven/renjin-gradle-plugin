@@ -5,6 +5,8 @@ import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.Copy
 
+import java.time.Duration
+
 class PackagePlugin implements Plugin<Project> {
 
     static List<String> DEFAULT_PACKAGES = [ 'stats', 'graphics', 'grDevices', 'utils', 'datasets', 'methods' ]
@@ -60,6 +62,7 @@ class PackagePlugin implements Plugin<Project> {
         testTask.configure {
             runtimeClasspath.from(project.sourceSets.main.output)
             runtimeClasspath.from(project.configurations.testRuntime)
+            timeout = Duration.ofMinutes(5)
         }
 
         project.tasks.named('test').configure {
