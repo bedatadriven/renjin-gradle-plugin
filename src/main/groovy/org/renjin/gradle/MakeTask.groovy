@@ -98,8 +98,13 @@ class MakeTask extends DefaultTask {
 
                 args "BRIDGE_PLUGIN=${pluginLibrary.get().asFile.absolutePath}"
 
-                // TODO CXX11
-                // TODO include dependency headers
+                if (makeVars.exists() && makeVars.readLines().grep(~/^CXX_STD\s*=\s*\W+CXX11/)) {
+                    args 'CXX=$(CXX11) $(CXX11STD)'
+                    args 'CXXFLAGS=$(CXX11FLAGS)'
+                    args 'CXXPICFLAGS=$(CXX11PICFLAGS)'
+                    args 'SHLIB_LDFLAGS=$(SHLIB_CXX11LDFLAGS)'
+                    args 'SHLIB_LD=$(SHLIB_CXX11LD)'
+                }
 
                 environment 'R_VERSION', '3.5.3'
                 environment 'R_HOME', homeDir
