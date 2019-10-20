@@ -7,6 +7,7 @@ import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.*
+import org.gradle.internal.impldep.com.google.common.io.ByteStreams
 
 import javax.inject.Inject
 import java.util.zip.ZipEntry
@@ -141,7 +142,9 @@ class MakeTask extends DefaultTask {
         sourceDir.eachFileRecurse(FileType.FILES) {
             if (it.name.endsWith('.gimple')) {
                 archiveOut.putNextEntry(new ZipEntry(sourceDir.relativePath(it)))
-                archiveOut.write(it.bytes)
+                it.withInputStream { inputStream ->
+                    ByteStreams.copy(inputStream, archiveOut)
+                }
             }
         }
         archiveOut.close()

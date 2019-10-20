@@ -48,7 +48,9 @@ class PackagePlugin implements Plugin<Project> {
             into("${project.buildDir}/resources/${project.group.replace('.', '/')}/${project.name}")
         }
 
-        project.tasks.register('compileNamespace', CompileNamespaceTask, project)
+        project.tasks.register('compileNamespace', CompileNamespaceTask, project).configure {
+            compileClasspath.from("${project.buildDir}/resources")
+        }
 
         project.sourceSets {
             main {
