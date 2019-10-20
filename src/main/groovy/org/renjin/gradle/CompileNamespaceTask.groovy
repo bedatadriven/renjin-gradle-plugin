@@ -68,7 +68,11 @@ class CompileNamespaceTask extends DefaultTask {
         project.delete destinationDir
         project.mkdir destinationDir
 
-        logger.info("sourceDirectory = ${sourceDirectory.get()}")
+        if(sourceDirectory.isPresent()) {
+            logger.info("sourceDirectory = ${sourceDirectory.get()}")
+        } else {
+            logger.warn("No R sources for this package.")
+        }
 
         try {
             project.javaexec {
