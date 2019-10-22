@@ -33,15 +33,18 @@ class MakeTask extends DefaultTask {
 
     @InputFile
     final RegularFileProperty pluginLibrary = project.objects.fileProperty()
-//
-//    @Input
-//    final ConfigurableFileCollection includeDirectories = project.objects.directoryProperty()
 
     @CompileClasspath
     final ConfigurableFileCollection linkClasspath = project.objects.fileCollection()
 
     @OutputFile
     final RegularFileProperty gimpleArchiveFile = project.objects.fileProperty()
+
+    @InputFile
+    final RegularFileProperty descriptionFile = project.objects.fileProperty()
+
+    @Input
+    String cxxStandard = "";
 
     @Inject
     MakeTask(Project project) {
@@ -51,6 +54,7 @@ class MakeTask extends DefaultTask {
         pluginLibrary.set(new File(project.property("gccBridgePlugin")))
         sourcesDirectory.convention(project.layout.projectDirectory.dir('src'))
         gimpleArchiveFile.convention(project.layout.buildDirectory.file('gimple.zip'))
+        descriptionFile.convention(project.layout.projectDirectory.file("DESCRIPTION"))
     }
 
     @TaskAction
@@ -98,7 +102,7 @@ class MakeTask extends DefaultTask {
 
                 args "BRIDGE_PLUGIN=${pluginLibrary.get().asFile.absolutePath}"
 
-                if (makeVars.exists() && makeVars.readLines().grep(~/^CXX_STD\s*=\s*\W+CXX11/)) {
+                if ("C++11".equalsIgnoreCase(cxxStandard)) {
                     args 'CXX=$(CXX11) $(CXX11STD)'
                     args 'CXXFLAGS=$(CXX11FLAGS)'
                     args 'CXXPICFLAGS=$(CXX11PICFLAGS)'
@@ -156,7 +160,7 @@ class MakeTask extends DefaultTask {
     }
 
     /**
-     * Removes intermediate results produced by GCC. This is neccessary because otherwise
+     * Removes intermediate results produced by GCC. This is necessary because otherwise
      * Gradle cannot properly determine whether the inputs have changed. Also, if we change the plugin
      * after running the build, GCC will not rebuild and regenerate the .gimple files because it only considers
      * the .o files when doing its own dirty-checking.
