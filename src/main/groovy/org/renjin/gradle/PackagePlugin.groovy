@@ -44,8 +44,26 @@ class PackagePlugin implements Plugin<Project> {
                 include 'DESCRIPTION'
                 include 'NAMESPACE'
             }
-            from project.file('inst')
-            into("${project.buildDir}/resources/${project.group.replace('.', '/')}/${project.name}")
+            from (project.file('inst')) {
+                exclude 'java/*.jar'
+            }
+            into("${project.buildDir}/inst/${project.group.replace('.', '/')}/${project.name}")
+        }
+
+        // If this package includes JAR files, then they are most
+        // likely to be used with rJava. We merge them onto our jar
+        // so that they are available on the classpath.
+        def jarDir = project.file('inst/java')
+        if(jarDir.exists()) {
+            def mergeJars = project.tasks.register('mergeJars', Copy)
+            mergeJars.configure {
+                jarDir.eachFile { jarFile ->
+                    if(jarFile.name.endsWith('.jar')) {
+                        from project.zipTree(jarFile)
+                    }
+                }
+                into "${project.buildDir}/mergedJars"
+            }
         }
 
         project.tasks.register('compileNamespace', CompileNamespaceTask, project).configure {
@@ -57,6 +75,10 @@ class PackagePlugin implements Plugin<Project> {
                 java.srcDirs = ['renjin']
                 output.dir("${project.buildDir}/inst", builtBy: 'copyPackageResources')
                 output.dir("${project.buildDir}/namespace", builtBy: 'compileNamespace')
+
+                if(jarDir.exists()) {
+                    output.dir("${project.buildDir}/mergedJars", builtBy: 'mergeJars')
+                }
             }
         }
 
