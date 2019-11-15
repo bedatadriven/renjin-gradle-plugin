@@ -67,7 +67,8 @@ class PackagePlugin implements Plugin<Project> {
         }
 
         project.tasks.register('compileNamespace', CompileNamespaceTask, project).configure {
-            compileClasspath.from("${project.buildDir}/resources")
+            dependsOn 'copyPackageResources'
+            compileClasspath.from("${project.buildDir}/inst")
         }
 
         project.sourceSets {
