@@ -3,10 +3,12 @@ package org.renjin.gradle
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.Directory
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
+import org.gradle.api.tasks.options.Option
 
 class CompileGimpleTask extends DefaultTask {
 
@@ -19,8 +21,10 @@ class CompileGimpleTask extends DefaultTask {
     @CompileClasspath
     final ConfigurableFileCollection linkClasspath = project.objects.fileCollection()
 
-    @InputFile
-    final RegularFileProperty gimpleArchiveFile = project.objects.fileProperty();
+    @SkipWhenEmpty
+    @Optional
+    @InputDirectory
+    final DirectoryProperty gimpleDirectory = project.objects.directoryProperty()
 
     @OutputDirectory
     final DirectoryProperty destinationDir = project.objects.directoryProperty()
@@ -63,7 +67,7 @@ class CompileGimpleTask extends DefaultTask {
 
                 args '--package', "${project.group}.${project.name}"
                 args '--class', project.name
-                args '--input-dir', gimpleArchiveFile.get().asFile.absolutePath
+                args '--input-dir', gimpleDirectory.get().asFile.absolutePath
                 args '--output-dir', destinationDir.get().asFile.absolutePath
 
                 if(project.hasProperty("enableGccBridgeLogging")) {

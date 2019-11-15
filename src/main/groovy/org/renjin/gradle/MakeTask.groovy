@@ -37,8 +37,8 @@ class MakeTask extends DefaultTask {
     @CompileClasspath
     final ConfigurableFileCollection linkClasspath = project.objects.fileCollection()
 
-    @OutputFile
-    final RegularFileProperty gimpleArchiveFile = project.objects.fileProperty()
+    @OutputDirectory
+    final DirectoryProperty destinationDirectory = project.objects.directoryProperty()
 
     @InputFile
     final RegularFileProperty descriptionFile = project.objects.fileProperty()
@@ -53,7 +53,7 @@ class MakeTask extends DefaultTask {
         renjinHomeDir.set(new File(project.property("renjinHomeDir")))
         pluginLibrary.set(new File(project.property("gccBridgePlugin")))
         sourcesDirectory.convention(project.layout.projectDirectory.dir('src'))
-        gimpleArchiveFile.convention(project.layout.buildDirectory.file('gimple.zip'))
+        destinationDirectory.convention(project.layout.buildDirectory.dir('gimple'))
         descriptionFile.convention(project.layout.projectDirectory.file("DESCRIPTION"))
     }
 
@@ -130,7 +130,7 @@ class MakeTask extends DefaultTask {
             }
 
             // Reset the output directory
-            project.delete gimpleArchiveFile
+            project.delete destinationDirectory.get()
 
             // Now copy ONLY the gimple into a ZIP file
             // We do this because the raw json is huge and fills up the build disk
@@ -146,7 +146,9 @@ class MakeTask extends DefaultTask {
     }
 
     private void archiveGimple() {
-        def archiveOut = new ZipOutputStream(new FileOutputStream(gimpleArchiveFile.get().asFile))
+        def dir = destinationDirectory.get().asFile
+        project.mkdir dir
+        def archiveOut = new ZipOutputStream(new FileOutputStream(new File(dir, "gimple.zip")))
         def sourceDir = sourcesDirectory.get().asFile.absoluteFile
         sourceDir.eachFileRecurse(FileType.FILES) {
             if (it.name.endsWith('.gimple')) {
