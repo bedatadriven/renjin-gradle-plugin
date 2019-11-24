@@ -45,6 +45,9 @@ class TestNamespaceTask extends DefaultTask {
     @Input
     final Property<List<String>> defaultPackages = project.objects.property(List.class)
 
+    @Input
+    boolean ignoreFailures = false;
+
     @Inject
     TestNamespaceTask(Project project) {
         group = 'Verification'
@@ -80,6 +83,7 @@ class TestNamespaceTask extends DefaultTask {
             args "--report-dir=${project.buildDir}/renjin-test-reports"
             args "--default-packages=${defaultPackages.get().join(',')}"
 
+            ignoreExitValue = ignoreFailures
 
             if (testsDirectory.present) {
                 workingDir testsDirectory.get().asFile.absolutePath
