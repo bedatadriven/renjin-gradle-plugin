@@ -23,6 +23,7 @@ class PackagePlugin implements Plugin<Project> {
         }
 
         project.repositories {
+            mavenCentral()
             maven {
                 url "https://nexus.bedatadriven.com/content/groups/public"
             }
