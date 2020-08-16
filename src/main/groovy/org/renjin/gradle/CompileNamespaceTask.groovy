@@ -5,6 +5,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
 
@@ -19,7 +20,7 @@ class CompileNamespaceTask extends DefaultTask {
     final ConfigurableFileCollection compileClasspath = project.objects.fileCollection()
 
     @Input
-    final Property<List<String>> defaultPackages = project.objects.property(List.class)
+    final ListProperty<String> defaultPackages = project.objects.listProperty(String.class)
 
     @Optional
     @PathSensitive(PathSensitivity.RELATIVE)
