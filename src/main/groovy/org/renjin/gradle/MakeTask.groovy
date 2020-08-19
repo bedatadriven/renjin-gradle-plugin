@@ -97,6 +97,7 @@ class MakeTask extends DefaultTask {
                     sourcesDirectory.get().asFile.eachFileMatch(~/.*\.(c|f|f77|f90|f95|f03|for|cpp|cxx|cc)$/) { file ->
                         objectFiles.add(file.name.replaceFirst(~/\.[^.]+$/, '.o'))
                     }
+                    objectFiles.sort()
                     args "OBJECTS=${objectFiles.join(' ')}"
                 }
 
