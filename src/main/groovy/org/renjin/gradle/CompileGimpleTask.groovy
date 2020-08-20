@@ -70,6 +70,8 @@ class CompileGimpleTask extends DefaultTask {
                 args '--input-dir', gimpleDirectory.get().asFile.absolutePath
                 args '--output-dir', destinationDir.get().asFile.absolutePath
 
+                jvmArgs "-Xmx8G"
+
                 if(project.hasProperty("enableGccBridgeLogging")) {
                     args '--logging-dir', "${project.buildDir}/gcc-bridge-logs"
                 }
