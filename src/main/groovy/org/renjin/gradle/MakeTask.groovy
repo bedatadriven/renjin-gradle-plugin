@@ -61,8 +61,6 @@ class MakeTask extends DefaultTask {
     void make() {
         // Store output for later
         def fileLogger = new TaskFileLogger(this)
-        logging.addStandardOutputListener(fileLogger)
-
         try {
             // First remove all the existing .o, .so, and .gimple files
             cleanIntermediateGccFiles()

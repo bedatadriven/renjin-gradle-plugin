@@ -1,12 +1,11 @@
 package org.renjin.gradle;
 
 import org.gradle.api.Task;
-import org.gradle.api.logging.StandardOutputListener;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
-public class TaskFileLogger implements StandardOutputListener {
+public class TaskFileLogger {
 
   private Writer writer;
   private final FileOutputStream output;
@@ -61,22 +60,6 @@ public class TaskFileLogger implements StandardOutputListener {
         output.flush();
       }
     };
-  }
-
-  @Override
-  public void onOutput(CharSequence output) {
-    try {
-
-      if (closed) {
-        try (Writer writer = new OutputStreamWriter(new FileOutputStream(logFile, true))) {
-          writer.append(output);
-        }
-      } else {
-        writer.append(output);
-      }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
   }
 
   public void close() {

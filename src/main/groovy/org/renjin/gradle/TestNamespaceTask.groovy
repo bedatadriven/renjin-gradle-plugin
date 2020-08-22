@@ -67,8 +67,6 @@ class TestNamespaceTask extends DefaultTask {
     @TaskAction
     void run() {
         def fileLogger = new TaskFileLogger(this)
-        logging.addStandardOutputListener(fileLogger)
-
         logger.info("defaultPackages = ${defaultPackages.get()}")
 
         project.javaexec {

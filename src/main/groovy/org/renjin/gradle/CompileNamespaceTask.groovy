@@ -59,8 +59,6 @@ class CompileNamespaceTask extends DefaultTask {
     @TaskAction
     void compile() {
         def fileLogger = new TaskFileLogger(this)
-        logging.addStandardOutputListener(fileLogger)
-        logging.addStandardErrorListener(fileLogger)
 
         if(!project.group) {
             throw new RuntimeException("The project group must be specified")

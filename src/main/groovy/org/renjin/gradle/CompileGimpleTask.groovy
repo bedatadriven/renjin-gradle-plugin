@@ -48,8 +48,6 @@ class CompileGimpleTask extends DefaultTask {
         project.mkdir destinationDir
 
         def fileLogger = new TaskFileLogger(this)
-        logging.addStandardOutputListener(fileLogger)
-        logging.addStandardErrorListener(fileLogger)
 
         try {
             project.javaexec {

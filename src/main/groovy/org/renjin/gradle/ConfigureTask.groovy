@@ -38,9 +38,6 @@ class ConfigureTask extends AbstractTask {
     @TaskAction
     void configure() {
         def fileLogger = new TaskFileLogger(this)
-        logging.addStandardErrorListener(fileLogger)
-        logging.addStandardOutputListener(fileLogger)
-
         try {
             project.exec {
                 executable = 'sh'
