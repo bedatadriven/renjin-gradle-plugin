@@ -1,7 +1,6 @@
 package org.renjin.gradle;
 
 import org.gradle.api.Task;
-import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.StandardOutputListener;
 
 import java.io.*;
@@ -12,9 +11,11 @@ public class TaskFileLogger implements StandardOutputListener {
   private Writer writer;
   private final FileOutputStream output;
   private boolean infoEnabled;
+  private boolean closed;
+  private final File logFile;
 
   public TaskFileLogger(Task task) throws FileNotFoundException {
-    File logFile = new File(task.getProject().getBuildDir(), task.getName() + ".log");
+    logFile = new File(task.getProject().getBuildDir(), task.getName() + ".log");
     logFile.getParentFile().mkdirs();
 
     infoEnabled = task.getLogger().isInfoEnabled();
@@ -65,13 +66,21 @@ public class TaskFileLogger implements StandardOutputListener {
   @Override
   public void onOutput(CharSequence output) {
     try {
-      writer.append(output);
+
+      if (closed) {
+        try (Writer writer = new OutputStreamWriter(new FileOutputStream(logFile, true))) {
+          writer.append(output);
+        }
+      } else {
+        writer.append(output);
+      }
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
 
   public void close() {
+    closed = true;
     try {
       writer.close();
     } catch (IOException e) {
