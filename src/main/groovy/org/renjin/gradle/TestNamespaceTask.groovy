@@ -78,6 +78,8 @@ class TestNamespaceTask extends DefaultTask {
             classpath packagerClasspath
             classpath runtimeClasspath
 
+            jvmArgs '-ea'
+
             args "--name=${project.name}"
             args "--report-dir=${project.buildDir}/renjin-test-reports"
             args "--default-packages=${defaultPackages.get().join(',')}"
