@@ -88,7 +88,6 @@ class PackagePlugin implements Plugin<Project> {
         testTask.configure {
             runtimeClasspath.from(project.sourceSets.main.output)
             runtimeClasspath.from(project.configurations.testRuntime)
-            timeout = Duration.ofMinutes(20)
         }
 
         project.tasks.named('test').configure {
