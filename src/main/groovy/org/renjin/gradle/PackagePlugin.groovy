@@ -88,6 +88,9 @@ class PackagePlugin implements Plugin<Project> {
         testTask.configure {
             runtimeClasspath.from(project.sourceSets.main.output)
             runtimeClasspath.from(project.configurations.testRuntime)
+            if(project.hasProperty("ignoreRenjinTestFailures")) {
+                ignoreFailures = "true".equalsIgnoreCase(project.property("ignoreRenjinTestFailures"))
+            }
         }
 
         project.tasks.named('test').configure {
