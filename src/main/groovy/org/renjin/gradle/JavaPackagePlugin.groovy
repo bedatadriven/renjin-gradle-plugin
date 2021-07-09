@@ -12,7 +12,10 @@ class JavaPackagePlugin implements Plugin<Project> {
 
 
         def extension = project.extensions.create('renjin', RenjinExtension)
-        if(project.hasProperty("renjinVersion")) {
+        if(System.getenv("RENJIN_RELEASE") != null) {
+            // This environment variable is set during the Renjin Release process
+            extension.renjinVersion.convention(System.getenv("RENJIN_RELEASE"))
+        } else if(project.hasProperty("renjinVersion")) {
             extension.renjinVersion.convention(project.property('renjinVersion'))
         }
 
